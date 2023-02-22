@@ -1,14 +1,23 @@
 package org.mlt.kactors
 
-class TestActor {
-    fun question(s: String): Int {
+interface TestMessages {
+    fun question(s: String): Int
+}
+
+interface RootMessages {
+    fun start()
+    fun other(i: Int)
+}
+
+class TestActor : TestMessages {
+    override fun question(s: String): Int {
         Thread.sleep(5000)
         return s.length
     }
 }
 
-class RootActor(private val self: ActorRef<RootActor>) {
-    fun start() {
+class RootActor(private val self: ActorRef<RootMessages>) : RootMessages {
+    override fun start() {
         println("Started")
         val test = self.context().actorOf("test") { TestActor() }
         test.ask({ question("foobar") }) {
@@ -17,18 +26,31 @@ class RootActor(private val self: ActorRef<RootActor>) {
         println("Returned")
     }
 
-    fun other() {
-        println("In other!")
+    override fun other(i: Int) {
+        println("In other! $i")
     }
+}
+
+class RootMsgSerializer() : Serializer<RootMessages>(), RootMessages {
+    override fun start() {
+        method("start")
+    }
+
+    override fun other(i: Int) {
+        method("other")
+        args(i)
+    }
+
+    override fun real(): RootMessages = this
 }
 
 fun main() {
     val system = ActorSystem()
 
-    val root = system.actorOf("root") { RootActor(it) }
+    val root = system.actorOf<RootMessages>("root", { RootMsgSerializer() }) { RootActor(it) }
 
     root.tell { start() }
-    root.tell { other() }
+    root.tell { other(42) }
 
     system.join()
 }
