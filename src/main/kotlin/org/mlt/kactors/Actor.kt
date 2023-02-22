@@ -32,19 +32,6 @@ class Actor<T>(
         }
     }
 
-    override suspend fun <R> askSuspend(msg: T.() -> R): R {
-        val caller = ActorContext.current.get()
-        val result = CompletableDeferred<R>()
-        execute {
-            if(actor==null) {
-                actor = actorFactory(this)
-            }
-            val r = msg(actor!!)
-            caller.tell { result.complete(r) }
-        }
-        return result.await()
-    }
-
     override fun context() = actorContext
 
     override fun execute(job: Runnable) {
