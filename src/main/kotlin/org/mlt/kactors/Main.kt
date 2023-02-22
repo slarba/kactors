@@ -1,6 +1,6 @@
 package org.mlt.kactors
 
-class TestActor(private val self: ActorRef<TestActor>) {
+class TestActor {
     fun question(s: String): Int {
         Thread.sleep(5000)
         return s.length
@@ -10,7 +10,7 @@ class TestActor(private val self: ActorRef<TestActor>) {
 class RootActor(private val self: ActorRef<RootActor>) {
     fun start() {
         println("Started")
-        val test = self.context().actorOf("test") { TestActor(it) }
+        val test = self.context().actorOf("test") { TestActor() }
         test.ask({ question("foobar") }) {
             println("Pituus = $it")
         }
@@ -22,7 +22,7 @@ class RootActor(private val self: ActorRef<RootActor>) {
     }
 }
 
-fun main(args: Array<String>) {
+fun main() {
     val system = ActorSystem()
 
     val root = system.actorOf("root") { RootActor(it) }

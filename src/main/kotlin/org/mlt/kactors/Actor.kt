@@ -1,7 +1,5 @@
 package org.mlt.kactors
 
-import kotlinx.coroutines.CompletableDeferred
-
 class Actor<T>(
     private val actorContext: ActorContext,
     private val scheduler: Scheduler,
