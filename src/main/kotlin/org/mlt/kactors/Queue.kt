@@ -19,12 +19,15 @@ class Queue {
 
     private fun handler() {
         while(!shutdown.get()) {
-            queue.poll()?.invoke() ?: {
-                running.set(false)
-                lock.withLock {
-                    condition.await()
-                    running.set(true)
-                }
+            val msg = queue.poll()
+            if(msg!=null) {
+                msg()
+                continue
+            }
+            running.set(false)
+            lock.withLock {
+                condition.await()
+                running.set(true)
             }
         }
     }

@@ -31,23 +31,10 @@ class RootActor(private val self: ActorRef<RootMessages>) : RootMessages {
     }
 }
 
-class RootMsgSerializer() : Serializer<RootMessages>(), RootMessages {
-    override fun start() {
-        method("start")
-    }
-
-    override fun other(i: Int) {
-        method("other")
-        args(i)
-    }
-
-    override fun real(): RootMessages = this
-}
-
 fun main() {
     val system = ActorSystem()
 
-    val root = system.actorOf<RootMessages>("root", { RootMsgSerializer() }) { RootActor(it) }
+    val root = system.actorOf("root") { RootActor(it) }
 
     root.tell { start() }
     root.tell { other(42) }

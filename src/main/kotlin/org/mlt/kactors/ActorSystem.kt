@@ -6,8 +6,8 @@ class ActorSystem : ActorContext {
     private val nextActorId = AtomicInteger()
     private val scheduler = QueuePerThreadScheduler(8)
 
-    override fun <T> actorOf(name: String, serializer: (() -> Serializer<T>)?, constructor: (ActorRef<T>) -> T) =
-        Actor(this, scheduler, constructor, name, nextActorId.getAndIncrement(), serializer)
+    override fun <T> actorOf(name: String, constructor: (ActorRef<T>) -> T) =
+        Actor(this, scheduler, constructor, name, nextActorId.getAndIncrement())
 
     override fun shutdown() = scheduler.shutdown()
 
