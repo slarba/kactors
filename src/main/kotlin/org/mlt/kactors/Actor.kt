@@ -1,5 +1,8 @@
 package org.mlt.kactors
 
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Future
+
 class Actor<T>(
     private val actorContext: ActorContext,
     private val scheduler: Scheduler,
@@ -28,6 +31,18 @@ class Actor<T>(
             val r = msg(actor!!)
             caller.tell { callback(r) }
         }
+    }
+
+    override fun <R> ask(msg: T.() -> R): CompletableFuture<R> {
+        val future = CompletableFuture<R>()
+        execute {
+            if(actor==null) {
+                actor = actorFactory(this)
+            }
+            val r = msg(actor!!)
+            future.complete(r)
+        }
+        return future
     }
 
     override fun context() = actorContext
