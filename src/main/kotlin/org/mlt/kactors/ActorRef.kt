@@ -5,6 +5,7 @@ import java.util.concurrent.Executor
 
 interface ActorRef<T> : Executor {
     fun tell(msg: T.() -> Unit)
+    fun tellAfter(delay: Long, msg: T.() -> Unit)
     fun <R> ask(msg: T.() -> R, callback: (R) -> Unit)
     fun <R> ask(msg: T.() -> R): CompletableFuture<R>
 

@@ -3,6 +3,7 @@ package org.mlt.kactors
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class TestActor(private val self: ActorRef<TestActor>) {
     lateinit var msg: String
@@ -10,6 +11,10 @@ class TestActor(private val self: ActorRef<TestActor>) {
     fun message(s: String) {
         msg = s
         die()
+    }
+
+    fun message2(s: String) {
+        msg = s
     }
 
     fun die() {
@@ -36,6 +41,21 @@ class BasicCommsTest {
         root.tell { message("foo") }
         system.join()
         assertNotNull(actor)
+        assertEquals("foo", actor!!.msg)
+    }
+
+    @Test
+    fun testDelayedTell() {
+        val system = ActorSystem()
+        var actor: TestActor? = null
+        val root = system.actorOf("root") { self -> TestActor(self).also { actor = it } }
+        val startTime = System.nanoTime()
+        root.tellAfter(500) { message("foo") }
+        root.tellAfter(200) { message2("bar") }
+        system.join()
+        val endTime = System.nanoTime()
+        assertNotNull(actor)
+        assertTrue((endTime-startTime)>500000)
         assertEquals("foo", actor!!.msg)
     }
 

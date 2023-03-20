@@ -22,6 +22,14 @@ class Actor<T>(
         }
     }
 
+    override fun tellAfter(delay: Long, msg: T.() -> Unit) {
+        executeAfter(delay) {
+            if(actor==null) {
+                actor = actorFactory(this)
+            }
+            msg(actor!!)
+        }
+    }
     override fun <R> ask(msg: T.() -> R, callback: (R) -> Unit) {
         val caller = ActorContext.current.get()
         execute {
@@ -57,4 +65,16 @@ class Actor<T>(
             }
         }
     }
+
+    fun executeAfter(delay: Long, job: Runnable) {
+        scheduler.scheduleAfterDelay(delay, actorId) {
+            ActorContext.current.set(this)
+            try {
+                job.run()
+            } finally {
+                ActorContext.current.set(null)
+            }
+        }
+    }
+
 }
