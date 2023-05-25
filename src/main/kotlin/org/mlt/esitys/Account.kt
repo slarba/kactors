@@ -18,7 +18,7 @@ fun main() {
     val p = Account()
 
     val fn = {
-        for(i in 1..1100000) {
+        for(i in 1..1000001) {
             val success = p.debit(1)
             if(!success) {
                 println("could not debit, no funds!")
