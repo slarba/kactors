@@ -31,7 +31,6 @@ class Actor<T>(
     override fun tell(msg: T.() -> Unit) {
         execute {
             if(actor==null) {
-                println("actor $actorId is null")
                 actor = actorFactory(this)
             }
             msg(actor!!)
@@ -91,11 +90,7 @@ class Actor<T>(
             } catch(e: Exception) {
                 if(recoveryStrategy==RecoveryStrategy.RESTART) {
                     actor = null
-                    try {
-                        job.run()
-                    } catch (e: Exception) {
-                        alive = false
-                    }
+                    execute(job)
                 } else {
                     alive = false
                     parent?.reportChildDeath(this, e)
@@ -114,11 +109,7 @@ class Actor<T>(
             } catch(e: Exception) {
                 if(recoveryStrategy==RecoveryStrategy.RESTART) {
                     actor = null
-                    try {
-                        job.run()
-                    } catch (e: Exception) {
-                        alive = false
-                    }
+                    execute(job)
                 } else {
                     alive = false
                     parent?.reportChildDeath(this, e)

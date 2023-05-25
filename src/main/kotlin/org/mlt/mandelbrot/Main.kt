@@ -14,20 +14,13 @@ import kotlin.random.Random
 
 const val ITERATIONS = 500
 
-private val random = Random(423432)
-
 class SubdivisionComputer {
     fun compute(sd: Subdivision, xp: Int, yp: Int, result: ActorRef<MandelbrotComputer>) {
         val image = BufferedImage(xp, yp, BufferedImage.TYPE_INT_RGB)
         val graphics = image.createGraphics()
 
-        if(random.nextDouble()<0.3) {
-            println("crashing")
-            throw RuntimeException("random failure")
-        }
-
         sd.forEachPoint(xp,yp) { c, x, y ->
-            val col = mandelbrot(c, 500)
+            val col = mandelbrot(c, ITERATIONS)
             graphics.drawPoint(x, y, col%200, col % 150, col % 10)
         }
         result.tell { subdivisionReady(image, sd.cx, sd.cy) }
@@ -59,7 +52,7 @@ class MandelbrotComputer(private val self: ActorRef<MandelbrotComputer>, private
     fun next(xd: Int, yd: Int) {
         if(subdivisions.hasNext()) {
             val sd = subdivisions.next()
-            val actor = self.context().actorOf("subdivision", RecoveryStrategy.RESTART) { SubdivisionComputer() }
+            val actor = self.context().actorOf("subdivision") { SubdivisionComputer() }
             actor.tell {
                 compute(sd, viewer.width()/xd, viewer.height()/yd, self)
             }
