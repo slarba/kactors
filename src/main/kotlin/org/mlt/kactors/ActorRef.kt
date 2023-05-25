@@ -10,4 +10,6 @@ interface ActorRef<T> : Executor {
     fun <R> ask(msg: T.() -> R): CompletableFuture<R>
 
     fun context(): ActorContext
+    fun reportChildDeath(ref: ActorRef<*>, e: Exception)
+    fun isAlive(): Boolean
 }

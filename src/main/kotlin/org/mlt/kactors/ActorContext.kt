@@ -5,6 +5,6 @@ interface ActorContext {
     fun shutdown()
 
     companion object {
-        val current: ThreadLocal<Actor<*>> = ThreadLocal()
+        val current: ThreadLocal<Actor<*>?> = ThreadLocal.withInitial { null }
     }
 }

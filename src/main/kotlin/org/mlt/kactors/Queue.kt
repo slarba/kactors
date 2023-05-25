@@ -6,12 +6,14 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 class Queue {
-    private val queue = ConcurrentLinkedQueue<() -> Unit>()
+    private val queue = ConcurrentLinkedQueue<Item>()
     private val running = AtomicBoolean(true)
     private val handlerThread = Thread(this::handler)
     private val shutdown = AtomicBoolean(false)
     private val lock = ReentrantLock()
     private val condition = lock.newCondition()
+
+    private data class Item(val ref: ActorRef<*>, val msg: () -> Unit)
 
     init {
         handlerThread.start()
@@ -21,7 +23,7 @@ class Queue {
         while(!shutdown.get()) {
             val msg = queue.poll()
             if(msg!=null) {
-                msg()
+                if(msg.ref.isAlive()) msg.msg()
                 continue
             }
             running.set(false)
@@ -32,8 +34,8 @@ class Queue {
         }
     }
 
-    fun put(job: () -> Unit) {
-        queue.add(job)
+    fun put(ref: ActorRef<*>, job: () -> Unit) {
+        queue.add(Item(ref,job))
         signal()
     }
 

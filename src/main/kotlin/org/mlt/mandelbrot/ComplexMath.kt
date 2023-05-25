@@ -17,7 +17,7 @@ data class Subdivision(val lowerLeft: Complex, val topRight: Complex, val cx: In
     }
 }
 
-data class Complex(val re: Double, val im: Double) {
+data class Complex(val re: Double = .0, val im: Double = .0) {
     operator fun plus(o: Complex) = Complex(re + o.re, im + o.im)
     operator fun minus(o: Complex) = Complex(re - o.re, im - o.im)
 

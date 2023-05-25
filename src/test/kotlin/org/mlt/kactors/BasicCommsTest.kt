@@ -1,5 +1,6 @@
 package org.mlt.kactors
 
+import java.lang.RuntimeException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -15,6 +16,7 @@ class TestActor(private val self: ActorRef<TestActor>) {
 
     fun message2(s: String) {
         msg = s
+        println("message 2 received")
     }
 
     fun die() {
@@ -32,7 +34,43 @@ class TestActor(private val self: ActorRef<TestActor>) {
     }
 }
 
+class DyingChild {
+    fun die() {
+        println("dying")
+        throw RuntimeException("foo")
+    }
+}
+
+class SupervisorActor(private val self: ActorRef<SupervisorActor>): ChildDeathProtocol {
+    var msg: String? = null
+
+    fun message() {
+        val ref = self.context().actorOf("child") { DyingChild() }
+        ref.tell { die() }
+        ref.tell { die() }
+        ref.tell { die() }
+        ref.tell { die() }
+    }
+
+    override fun childDied(ref: ActorRef<*>, e: Exception) {
+        msg = "child died: ${e.message}"
+        self.tellAfter(1000) {
+            self.context().shutdown()
+        }
+    }
+}
+
 class BasicCommsTest {
+    @Test
+    fun testChildDeathReporting() {
+        val system = ActorSystem()
+        var actor: SupervisorActor? = null
+        val root = system.actorOf("root") { self -> SupervisorActor(self).also { actor = it } }
+        root.tell { message() }
+        system.join()
+        assertEquals("child died: foo", actor?.msg)
+    }
+
     @Test
     fun testBasicTell() {
         val system = ActorSystem()

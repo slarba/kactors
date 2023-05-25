@@ -13,26 +13,27 @@ class SubdivisionComputer {
     fun compute(sd: Subdivision, xp: Int, yp: Int, result: ActorRef<MandelbrotComputer>) {
         val image = BufferedImage(xp, yp, BufferedImage.TYPE_INT_RGB)
         val graphics = image.createGraphics()
+
         sd.forEachPoint(xp,yp) { c, x, y ->
             val col = mandelbrot(c, 500)
-            drawPoint(graphics, x, y, col%200, col % 150, col % 10)
+            graphics.drawPoint(x, y, col%200, col % 150, col % 10)
         }
         result.tell { subdivisionReady(image, sd.cx, sd.cy) }
     }
 
     private fun mandelbrot(c: Complex, iterations: Int): Int {
-        var z = Complex(.0,.0)
+        var z = Complex()
         for(i in 0..iterations) {
             z = z*z + c
             if(z.abs()>2.0) return i
         }
         return iterations
     }
+}
 
-    private fun drawPoint(graphics: Graphics2D, x: Int, y: Int, r: Int, g: Int, b: Int) {
-        graphics.color = Color(r,g,b)
-        graphics.drawLine(x,y,x,y)
-    }
+fun Graphics2D.drawPoint(x: Int, y:Int, r:Int, g:Int, b:Int) {
+    color = Color(r,g,b)
+    drawLine(x,y,x,y)
 }
 
 class MandelbrotComputer(private val self: ActorRef<MandelbrotComputer>, private val viewer: Viewer) {
@@ -47,38 +48,14 @@ class MandelbrotComputer(private val self: ActorRef<MandelbrotComputer>, private
         if(subdivisions.hasNext()) {
             val sd = subdivisions.next()
             val actor = self.context().actorOf("subdivision") { SubdivisionComputer() }
-            actor.tell { compute(sd, viewer.width()/xd, viewer.height()/yd, self) }
+            actor.tell {
+                compute(sd, viewer.width()/xd, viewer.height()/yd, self)
+            }
             self.tell { next(xd, yd) }
         }
     }
 
     fun subdivisionReady(img: BufferedImage, cx: Int, cy: Int) = viewer.drawSubdivision(img, cx, cy)
-}
-
-class Observable<T>(private val self: ActorRef<Observable<T>>) {
-    private lateinit var items: Iterator<T>
-    private lateinit var actOn: (ActorRef<Observable<T>>,T) -> Unit
-
-    fun stream(items: Iterable<T>, action: (ActorRef<Observable<T>>,T) -> Unit) {
-        this.items = items.iterator()
-        this.actOn = action
-        self.tell { next() }
-    }
-
-    private fun next() {
-        if(items.hasNext()) {
-            val item = items.next()
-            actOn(self,item)
-            self.tell { next() }
-        }
-    }
-
-    companion object {
-        fun <T> create(system: ActorSystem, items: Iterable<T>, action: (ActorRef<Observable<T>>,T) -> Unit) {
-            val actor = system.actorOf("observable") { Observable<T>(it) }
-            actor.tell { stream(items, action) }
-        }
-    }
 }
 
 class Viewer(w: Int, h: Int) : JFrame() {
