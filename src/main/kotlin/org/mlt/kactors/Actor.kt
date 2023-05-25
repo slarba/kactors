@@ -2,6 +2,10 @@ package org.mlt.kactors
 
 import java.util.concurrent.CompletableFuture
 
+enum class RecoveryStrategy {
+    RESTART, PROPAGATE
+}
+
 class Actor<T>(
     private val parent: ActorRef<*>?,
     private val actorContext: ActorContext,
@@ -9,6 +13,7 @@ class Actor<T>(
     private val actorFactory: (ActorRef<T>) -> T,
     private val name: String,
     private val actorId: Int,
+    private val recoveryStrategy: RecoveryStrategy = RecoveryStrategy.PROPAGATE,
 ) : ActorRef<T>
 {
     private var actor: T? = null
@@ -26,6 +31,7 @@ class Actor<T>(
     override fun tell(msg: T.() -> Unit) {
         execute {
             if(actor==null) {
+                println("actor $actorId is null")
                 actor = actorFactory(this)
             }
             msg(actor!!)
@@ -83,8 +89,17 @@ class Actor<T>(
             try {
                 job.run()
             } catch(e: Exception) {
-                alive = false
-                parent?.reportChildDeath(this, e)
+                if(recoveryStrategy==RecoveryStrategy.RESTART) {
+                    actor = null
+                    try {
+                        job.run()
+                    } catch (e: Exception) {
+                        alive = false
+                    }
+                } else {
+                    alive = false
+                    parent?.reportChildDeath(this, e)
+                }
             } finally {
                 ActorContext.current.set(null)
             }
@@ -97,8 +112,17 @@ class Actor<T>(
             try {
                 job.run()
             } catch(e: Exception) {
-                alive = false
-                parent?.reportChildDeath(this, e)
+                if(recoveryStrategy==RecoveryStrategy.RESTART) {
+                    actor = null
+                    try {
+                        job.run()
+                    } catch (e: Exception) {
+                        alive = false
+                    }
+                } else {
+                    alive = false
+                    parent?.reportChildDeath(this, e)
+                }
             } finally {
                 ActorContext.current.set(null)
             }

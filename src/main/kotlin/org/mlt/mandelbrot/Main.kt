@@ -2,17 +2,29 @@ package org.mlt.mandelbrot
 
 import org.mlt.kactors.ActorRef
 import org.mlt.kactors.ActorSystem
+import org.mlt.kactors.RecoveryStrategy
 import java.awt.Color
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.image.BufferedImage
+import java.lang.RuntimeException
 import javax.swing.JFrame
 import javax.swing.JPanel
+import kotlin.random.Random
+
+const val ITERATIONS = 500
+
+private val random = Random(423432)
 
 class SubdivisionComputer {
     fun compute(sd: Subdivision, xp: Int, yp: Int, result: ActorRef<MandelbrotComputer>) {
         val image = BufferedImage(xp, yp, BufferedImage.TYPE_INT_RGB)
         val graphics = image.createGraphics()
+
+        if(random.nextDouble()<0.3) {
+            println("crashing")
+            throw RuntimeException("random failure")
+        }
 
         sd.forEachPoint(xp,yp) { c, x, y ->
             val col = mandelbrot(c, 500)
@@ -47,7 +59,7 @@ class MandelbrotComputer(private val self: ActorRef<MandelbrotComputer>, private
     fun next(xd: Int, yd: Int) {
         if(subdivisions.hasNext()) {
             val sd = subdivisions.next()
-            val actor = self.context().actorOf("subdivision") { SubdivisionComputer() }
+            val actor = self.context().actorOf("subdivision", RecoveryStrategy.RESTART) { SubdivisionComputer() }
             actor.tell {
                 compute(sd, viewer.width()/xd, viewer.height()/yd, self)
             }
@@ -84,7 +96,7 @@ class Viewer(w: Int, h: Int) : JFrame() {
 }
 
 fun main() {
-    val system = ActorSystem()
+    val system = ActorSystem(16)
 
     val viewer = Viewer(1500,1500)
     val mandelbrot = system.actorOf("mandelbrot") { MandelbrotComputer(it, viewer) }
