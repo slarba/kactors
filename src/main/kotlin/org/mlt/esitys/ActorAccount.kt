@@ -15,14 +15,14 @@ class ActorAccount(private var balance: Long) {
     }
 }
 
-class Debitor(private val main: ActorRef<MainActor>, private val account: ActorRef<ActorAccount>) {
+class Debitor(private val name: String, private val main: ActorRef<MainActor>, private val account: ActorRef<ActorAccount>) {
     private val ITERATIONS = 1000001
 
     fun start() {
         for(i in 1..ITERATIONS) {
             account.ask({ debit(1) }) { success ->
                 if(!success) {
-                    println("could not debit!")
+                    println("$name could not debit!")
                 }
                 if(i==ITERATIONS) main.tell { finished() }
             }
@@ -34,8 +34,8 @@ class MainActor(private val self: ActorRef<MainActor>) {
     private val account = self.context().actorOf("account") { ActorAccount(2000000) }
 
     fun start() {
-        val debitor1 = self.context().actorOf("debitor1") { Debitor(self, account) }
-        val debitor2 = self.context().actorOf("debitor2") { Debitor(self, account) }
+        val debitor1 = self.context().actorOf("debitor1") { Debitor("debitor1", self, account) }
+        val debitor2 = self.context().actorOf("debitor2") { Debitor("debitor2", self, account) }
 
         debitor1.tell { start() }
         debitor2.tell { start() }
