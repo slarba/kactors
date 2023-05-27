@@ -44,10 +44,9 @@ class MainActor(private val self: ActorRef<MainActor>) {
     private var nFinished = 0
 
     fun finished() {
-        if(++nFinished==2) {
-            account.ask({ printBalance() }) {
-                self.context().shutdown()
-            }
+        if(++nFinished<2) return
+        account.ask({ printBalance() }) {
+            self.context().shutdown()
         }
     }
 }
